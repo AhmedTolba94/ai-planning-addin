@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Planning System</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;
+  --border:#30363d;--border2:#444c56;
+  --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --blue:#388bfd;--blue-dim:#1f3a5f;--blue-light:#cae8ff;
+  --teal:#2ea043;--teal-dim:#1a3a25;--teal-light:#aff5b4;
+  --amber:#d29922;--amber-dim:#3d2f0a;--amber-light:#f8e3a3;
+  --coral:#f85149;--coral-dim:#3d1616;--coral-light:#ffc1ba;
+  --purple:#a371f7;--purple-dim:#2d1f4e;--purple-light:#d2b4fe;
+  --r:6px;--rl:10px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:12px;line-height:1.5;overflow-x:hidden}
+
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 12px;display:flex;align-items:center;gap:8px}
+.header-icon{font-size:18px}
+.header-title{font-size:13px;font-weight:700;color:var(--text);flex:1}
+.header-sub{font-size:10px;color:var(--text3)}
+
+/* TABS */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;transition:all .15s}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--blue-light);border-bottom-color:var(--blue)}
+
+/* CONTENT */
+.content{padding:12px;overflow-y:auto;height:calc(100vh - 88px)}
+.view{display:none}.view.active{display:block}
+
+/* FORM */
+.section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:14px 0 8px}
+.form-group{margin-bottom:10px}
+.form-group label{display:block;font-size:11px;color:var(--text2);margin-bottom:3px;font-weight:500}
+.form-group input,.form-group textarea,.form-group select{
+  width:100%;padding:7px 9px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r);color:var(--text);font-family:inherit;font-size:11px;
+  transition:border-color .15s;resize:vertical;outline:none
+}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--blue)}
+.form-group textarea{min-height:60px}
+.form-group select option{background:var(--bg3)}
+
+/* CHECKLIST */
+.checklist{list-style:none}
+.checklist li{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2)}
+.checklist li:last-child{border-bottom:none}
+.checklist input[type="checkbox"]{width:13px;height:13px;accent-color:var(--blue);cursor:pointer;flex-shrink:0}
+.checklist label{cursor:pointer;flex:1}
+
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chip{display:flex;align-items:center;gap:3px;padding:3px 8px;border-radius:20px;cursor:pointer;font-size:10px;font-weight:600;border:1px solid var(--border2);color:var(--text2);background:var(--bg3);transition:all .15s;user-select:none}
+.chip input{display:none}
+.chip.selected{background:var(--blue-dim);color:var(--blue-light);border-color:var(--blue)}
+
+/* BUTTONS */
+.btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 14px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:inherit;width:100%;margin-top:8px}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#4f9bff}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--border2);color:var(--text)}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-teal:hover{background:#3ab854}
+.btn-sm{padding:5px 10px;font-size:11px;width:auto;margin-top:0}
+
+/* OUTPUT */
+.output-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:11px;color:var(--text2);line-height:1.7;white-space:pre-wrap;min-height:60px}
+.output-box.filled{color:var(--text)}
+.placeholder{color:var(--text3);font-style:italic;font-size:11px}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.metric{background:var(--bg3);border-radius:var(--r);padding:10px 12px}
+.metric-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.metric-value{font-size:16px;font-weight:700;color:var(--text)}
+
+/* TABLE */
+.mini-table{width:100%;border-collapse:collapse;font-size:11px}
+.mini-table th{text-align:left;padding:5px 7px;border-bottom:1px solid var(--border);color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase}
+.mini-table td{padding:5px 7px;border-bottom:1px solid var(--border);color:var(--text2)}
+.mini-table tr:last-child td{border-bottom:none}
+.mini-table tr:hover td{background:var(--bg3);color:var(--text)}
+
+/* TAGS */
+.tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600}
+.tag-blue{background:var(--blue-dim);color:var(--blue-light)}
+.tag-teal{background:var(--teal-dim);color:var(--teal-light)}
+.tag-amber{background:var(--amber-dim);color:var(--amber-light)}
+.tag-coral{background:var(--coral-dim);color:var(--coral-light)}
+
+/* RISK */
+.risk-item{padding:7px 9px;border-radius:var(--r);border-left:3px solid var(--coral);background:var(--coral-dim);font-size:11px;color:var(--coral-light);margin-bottom:6px;line-height:1.5}
+
+/* PROGRESS */
+.progress-wrap{background:var(--bg3);border-radius:20px;height:5px;overflow:hidden;margin:8px 0}
+.progress-bar{height:100%;border-radius:20px;transition:width .4s ease;background:var(--blue)}
+
+/* STEP LIST */
+.step-list{list-style:none}
+.step-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);transition:color .2s}
+.step-item:last-child{border-bottom:none}
+.step-item.done{color:var(--teal-light)}
+.step-item.running{color:var(--amber-light)}
+.step-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .2s}
+.step-item.done .step-dot{background:var(--teal)}
+.step-item.running .step-dot{background:var(--amber)}
+
+/* SPINNER */
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* API KEY */
+.api-warn{background:var(--amber-dim);border:1px solid var(--amber);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--amber-light)}
+.api-warn h4{font-size:12px;margin-bottom:5px}
+
+/* DIVIDER */
+.divider{border:none;border-top:1px solid var(--border);margin:12px 0}
+
+/* FOLLOW-UP */
+.fup-row{display:flex;gap:6px;margin-bottom:8px}
+.fup-row input{flex:1;font-size:11px}
+
+/* EXPORT NOTICE */
+.export-notice{background:var(--teal-dim);border:1px solid var(--teal);border-radius:var(--r);padding:10px 12px;font-size:11px;color:var(--teal-light);margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">⚡</div>
+  <div>
+    <div class="header-title">AI Planning System</div>
+    <div class="header-sub">Contract → Execution Ready</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-input" onclick="showTab('input')">Input</div>
+  <div class="tab" id="tab-process" onclick="showTab('process')">Process</div>
+  <div class="tab" id="tab-output" onclick="showTab('output')">Output</div>
+  <div class="tab" id="tab-insights" onclick="showTab('insights')">Insights</div>
+  <div class="tab" id="tab-settings" onclick="showTab('settings')">⚙️</div>
+</div>
+
+<div class="content">
+
+  <!-- ══ INPUT ══ -->
+  <div id="view-input" class="view active">
+    <div id="api-warn" class="api-warn" style="display:none">
+      <h4>⚠️ API Key Required</h4>
+      <p>Go to ⚙️ Settings tab to enter your Anthropic API key.</p>
+    </div>
+
+    <div class="section-title">Project Details</div>
+    <div class="form-group"><label>Project Name *</label><input id="proj-name" type="text" placeholder="e.g. Hospital Expansion Phase 2"/></div>
+    <div class="form-group"><label>Contract Value (SAR)</label><input id="contract-value" type="number" placeholder="e.g. 12000000"/></div>
+    <div class="form-group"><label>Duration (months)</label><input id="proj-duration" type="number" placeholder="e.g. 18"/></div>
+    <div class="form-group"><label>Client / Owner</label><input id="client-name" type="text" placeholder="e.g. Ministry of Health"/></div>
+    <div class="form-group"><label>Contractor</label><input id="contractor" type="text" placeholder="e.g. Al-Rashid Contracting"/></div>
+    <div class="form-group">
+      <label>Project Type</label>
+      <select id="proj-type">
+        <option value="">Select...</option>
+        <option>Building & Civil</option>
+        <option>MEP & Infrastructure</option>
+        <option>Roads & Highways</option>
+        <option>Industrial</option>
+        <option>Oil & Gas</option>
+        <option>IT & Telecom</option>
+        <option>Water & Wastewater</option>
+        <option>Fit-Out & Interior</option>
+      </select>
+    </div>
+
+    <div class="section-title">Scope & Contract</div>
+    <div class="form-group"><label>Scope of Work *</label><textarea id="scope-text" placeholder="Describe what is being built, location, area, key deliverables..."></textarea></div>
+    <div class="form-group"><label>Key Milestones</label><textarea id="milestones-text" style="min-height:45px" placeholder="e.g. M1 Mobilization, M6 Foundation, M12 Structure..."></textarea></div>
+    <div class="form-group"><label>Contract Notes / BOQ / Specs</label><textarea id="contract-text" placeholder="Paste clauses, BOQ items, payment terms, specs..."></textarea></div>
+
+    <div class="section-title">Documents Available</div>
+    <ul class="checklist">
+      <li><input type="checkbox" id="chk1"><label for="chk1">Tender Document</label></li>
+      <li><input type="checkbox" id="chk2"><label for="chk2">Contract Agreement</label></li>
+      <li><input type="checkbox" id="chk3"><label for="chk3">BOQ (Bill of Quantities)</label></li>
+      <li><input type="checkbox" id="chk4"><label for="chk4">Technical Specification</label></li>
+      <li><input type="checkbox" id="chk5"><label for="chk5">Milestones Schedule</label></li>
+      <li><input type="checkbox" id="chk6"><label for="chk6">Scope of Work Document</label></li>
+    </ul>
+
+    <div class="section-title">Planning Settings</div>
+    <div class="form-group">
+      <label>Planning Depth</label>
+      <select id="planning-depth">
+        <option value="quick">Quick Synopsis</option>
+        <option value="standard" selected>Standard Plan</option>
+        <option value="full">Full Execution Plan</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Focus Areas</label>
+      <div class="chips">
+        <label class="chip selected"><input type="checkbox" class="focus" value="WBS" checked>WBS</label>
+        <label class="chip selected"><input type="checkbox" class="focus" value="Budget" checked>Budget</label>
+        <label class="chip"><input type="checkbox" class="focus" value="Procurement">Procurement</label>
+        <label class="chip"><input type="checkbox" class="focus" value="Critical Path">Critical Path</label>
+        <label class="chip"><input type="checkbox" class="focus" value="Engineering">Engineering</label>
+        <label class="chip"><input type="checkbox" class="focus" value="Risk">Risk</label>
+        <label class="chip"><input type="checkbox" class="focus" value="Cashflow">Cashflow</label>
+        <label class="chip"><input type="checkbox" class="focus" value="Resources">Resources</label>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="run-btn" onclick="runPlanning()">⚡ Run AI Planning</button>
+  </div>
+
+  <!-- ══ PROCESS ══ -->
+  <div id="view-process" class="view">
+    <div class="section-title">Progress</div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px">
+      <span id="proc-label">Waiting...</span><span id="proc-pct">0%</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+
+    <div class="section-title">Framework Steps</div>
+    <ul class="step-list">
+      <li class="step-item" id="step-0"><div class="step-dot"></div>AI Planning Framework</li>
+      <li class="step-item" id="step-1"><div class="step-dot"></div>AI Workflow Design</li>
+      <li class="step-item" id="step-2"><div class="step-dot"></div>Standard WBS Library</li>
+      <li class="step-item" id="step-3"><div class="step-dot"></div>Planning Templates</li>
+      <li class="step-item" id="step-4"><div class="step-dot"></div>Planning SOP</li>
+      <li class="step-item" id="step-5"><div class="step-dot"></div>Pilot Project Planning</li>
+      <li class="step-item" id="step-6"><div class="step-dot"></div>System Architecture</li>
+      <li class="step-item" id="step-7"><div class="step-dot"></div>Functional Specification</li>
+    </ul>
+
+    <div class="section-title">Process Log</div>
+    <div class="output-box" id="process-log" style="font-family:monospace;font-size:10px;min-height:80px">Waiting to start...</div>
+  </div>
+
+  <!-- ══ OUTPUT ══ -->
+  <div id="view-output" class="view">
+    <div class="section-title">Project Synopsis</div>
+    <div class="output-box placeholder" id="synopsis-out">Run AI Planning to generate...</div>
+
+    <div class="section-title">WBS Activity Levels</div>
+    <div id="wbs-out"><div class="placeholder">WBS will be generated here...</div></div>
+
+    <div class="section-title">Budget Breakdown</div>
+    <div id="budget-out"><div class="placeholder">Budget will appear here...</div></div>
+
+    <div class="section-title">Execution Plan</div>
+    <div class="output-box placeholder" id="execution-out">Execution plan will be generated...</div>
+
+    <div class="section-title">Procurement Plan</div>
+    <div class="output-box placeholder" id="procurement-out">Procurement plan will appear here...</div>
+
+    <div class="section-title">Critical Path</div>
+    <div class="output-box placeholder" id="critical-out">Critical path analysis will appear here...</div>
+
+    <hr class="divider"/>
+    <button class="btn btn-teal" onclick="exportToExcel()">📊 Export All to Excel Sheets</button>
+  </div>
+
+  <!-- ══ INSIGHTS ══ -->
+  <div id="view-insights" class="view">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Order Book</div><div class="metric-value" id="ins-ob">—</div></div>
+      <div class="metric"><div class="metric-label">Cashflow Peak</div><div class="metric-value" id="ins-cf">—</div></div>
+      <div class="metric"><div class="metric-label">Margin %</div><div class="metric-value" id="ins-mg">—</div></div>
+      <div class="metric"><div class="metric-label">Peak Headcount</div><div class="metric-value" id="ins-rc">—</div></div>
+    </div>
+
+    <div class="section-title">⚠️ Risk Alerts</div>
+    <div id="risk-out"><div class="placeholder">Risk analysis will appear after planning...</div></div>
+
+    <div class="section-title">📈 Financial Tracking</div>
+    <div class="output-box placeholder" id="financial-out">Financial analysis will appear here...</div>
+
+    <hr class="divider"/>
+    <div class="section-title">💬 Ask AI a Follow-up</div>
+    <div class="fup-row">
+      <input type="text" id="fup-input" placeholder="e.g. What are procurement risks?"/>
+      <button class="btn btn-primary btn-sm" onclick="askFollowup()">Ask</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px">
+      <button class="btn btn-secondary btn-sm" onclick="quickQ('What are the biggest schedule risks?')">Schedule risks?</button>
+      <button class="btn btn-secondary btn-sm" onclick="quickQ('Suggest a monthly billing plan')">Billing plan?</button>
+      <button class="btn btn-secondary btn-sm" onclick="quickQ('Main procurement packages and lead times?')">Procurement?</button>
+      <button class="btn btn-secondary btn-sm" onclick="quickQ('One-page summary for management')">Mgmt summary?</button>
+    </div>
+    <div class="output-box placeholder" id="fup-out">Ask any question about your project plan...</div>
+  </div>
+
+  <!-- ══ SETTINGS ══ -->
+  <div id="view-settings" class="view">
+    <div class="section-title">🔑 Anthropic API Key</div>
+    <div class="form-group">
+      <label>API Key (saved locally in Excel)</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-api03-..."/>
+    </div>
+    <button class="btn btn-primary" onclick="saveKey()">Save API Key</button>
+    <div id="key-status" style="font-size:11px;margin-top:8px;color:var(--text3)"></div>
+
+    <hr class="divider"/>
+    <div class="section-title">Model</div>
+    <div class="form-group">
+      <select id="model-select">
+        <option value="claude-sonnet-4-20250514" selected>Claude Sonnet 4 (Recommended)</option>
+        <option value="claude-opus-4-20250514">Claude Opus 4 (Most Powerful)</option>
+      </select>
+    </div>
+
+    <hr class="divider"/>
+    <div class="section-title">How to Get an API Key</div>
+    <div style="font-size:11px;color:var(--text2);line-height:1.7">
+      1. Go to <strong style="color:var(--blue)">console.anthropic.com</strong><br>
+      2. Sign up / Log in<br>
+      3. Click "API Keys" → "Create Key"<br>
+      4. Copy the key (starts with sk-ant-)<br>
+      5. Paste it above and click Save<br><br>
+      <span style="color:var(--text3)">Your key is stored only in this Excel session.</span>
+    </div>
+
+    <hr class="divider"/>
+    <button class="btn btn-secondary" onclick="clearAll()">🗑️ Clear All Project Data</button>
+  </div>
+
+</div>
+
+<script>
+// ─── STATE
+let results = null;
+let apiKey = '';
+const DOCS = ['Tender Document','Contract Agreement','BOQ','Technical Specification','Milestones Schedule','Scope of Work'];
+
+// ─── OFFICE INIT
+Office.onReady(info => {
+  if (info.host === Office.HostType.Excel) {
+    apiKey = localStorage.getItem('ai_planning_key') || '';
+    updateKeyStatus();
+    setupChips();
+    if (!apiKey) document.getElementById('api-warn').style.display = 'block';
+  }
+});
+
+function updateKeyStatus() {
+  const ks = document.getElementById('key-status');
+  const ki = document.getElementById('api-key-input');
+  const warn = document.getElementById('api-warn');
+  if (apiKey) {
+    ks.innerHTML = '<span style="color:var(--teal-light)">✓ API key saved</span>';
+    if (ki) ki.value = apiKey;
+    if (warn) warn.style.display = 'none';
+  } else {
+    ks.textContent = 'No key saved yet.';
+    if (warn) warn.style.display = 'block';
+  }
+}
+
+function saveKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k.startsWith('sk-')) { alert('Invalid key. Must start with sk-'); return; }
+  apiKey = k;
+  localStorage.setItem('ai_planning_key', k);
+  updateKeyStatus();
+  showTab('input');
+}
+
+// ─── TABS
+function showTab(t) {
+  ['input','process','output','insights','settings'].forEach(id => {
+    document.getElementById('view-' + id).classList.remove('active');
+    document.getElementById('tab-' + id).classList.remove('active');
+  });
+  document.getElementById('view-' + t).classList.add('active');
+  document.getElementById('tab-' + t).classList.add('active');
+}
+
+// ─── CHIPS
+function setupChips() {
+  document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => c.classList.toggle('selected')));
+}
+
+// ─── DATA
+function getData() {
+  return {
+    name: document.getElementById('proj-name').value || 'Unnamed Project',
+    value: document.getElementById('contract-value').value || '',
+    duration: document.getElementById('proj-duration').value || '',
+    client: document.getElementById('client-name').value || '',
+    contractor: document.getElementById('contractor').value || '',
+    type: document.getElementById('proj-type').value || 'General',
+    scope: document.getElementById('scope-text').value || '',
+    milestones: document.getElementById('milestones-text').value || '',
+    contract: document.getElementById('contract-text').value || '',
+    depth: document.getElementById('planning-depth').value,
+    focus: [...document.querySelectorAll('.focus:checked')].map(c => c.value).join(', '),
+    docs: DOCS.filter((_, i) => document.getElementById('chk' + (i + 1)).checked)
+  };
+}
+
+function buildPrompt(d) {
+  return `You are a senior project planning AI for construction and engineering projects in Saudi Arabia.
+
+PROJECT:
+- Name: ${d.name}
+- Contract Value: SAR ${d.value || 'Not provided'}
+- Duration: ${d.duration || 'Not provided'} months
+- Client: ${d.client || 'Not provided'}
+- Contractor: ${d.contractor || 'Not provided'}
+- Type: ${d.type}
+- Depth: ${d.depth}
+- Focus: ${d.focus}
+- Documents: ${d.docs.join(', ') || 'None'}
+
+SCOPE: ${d.scope || 'Not provided'}
+MILESTONES: ${d.milestones || 'Not provided'}
+CONTRACT NOTES: ${d.contract || 'Not provided'}
+
+Respond ONLY with valid JSON (no markdown, no fences):
+{
+  "synopsis": "3-4 paragraph executive summary",
+  "wbs": [
+    {"code":"1.0","activity":"Project Management","duration":"X months","owner":"PM","budget_pct":5},
+    {"code":"2.0","activity":"Engineering & Design","duration":"X months","owner":"Engineering Manager","budget_pct":8},
+    {"code":"3.0","activity":"Procurement","duration":"X months","owner":"Procurement Manager","budget_pct":35},
+    {"code":"4.0","activity":"Civil & Structural Works","duration":"X months","owner":"Site Engineer","budget_pct":25},
+    {"code":"5.0","activity":"MEP Works","duration":"X months","owner":"MEP Engineer","budget_pct":15},
+    {"code":"6.0","activity":"Testing & Commissioning","duration":"X months","owner":"QA Manager","budget_pct":7},
+    {"code":"7.0","activity":"HSE & Site Management","duration":"X months","owner":"HSE Manager","budget_pct":5}
+  ],
+  "budget": [
+    {"item":"Direct Labour","pct":20,"note":"On-site workforce"},
+    {"item":"Materials & Equipment","pct":35,"note":"Main supply"},
+    {"item":"Subcontracts","pct":22,"note":"Specialist works"},
+    {"item":"Overheads","pct":8,"note":"Site & office"},
+    {"item":"Contingency","pct":8,"note":"Risk allowance"},
+    {"item":"Profit & Margin","pct":7,"note":"Target return"}
+  ],
+  "execution": "4-paragraph execution plan: mobilization, phases, resources, handover",
+  "procurement": "Top 5 procurement packages with lead times and vendor strategy",
+  "critical_path": "Critical activities, float, milestone risks, recovery options",
+  "risks": ["Schedule Risk: ...", "Cost Risk: ...", "Procurement Risk: ...", "Technical Risk: ...", "Contract Risk: ..."],
+  "financial": "Billing milestones, payment flow, cashflow gaps, cost-to-complete",
+  "margin_pct": "X%",
+  "cashflow_peak": "SAR X.XM (Month Y)",
+  "resource_peak": "~XX people (Month Y)",
+  "procurement_lead": "XX weeks"
+}`;
+}
+
+// ─── MAIN RUN
+async function runPlanning() {
+  if (!apiKey) { alert('Enter your API key in ⚙️ Settings first.'); showTab('settings'); return; }
+  const d = getData();
+  if (!d.scope.trim() && d.name === 'Unnamed Project') { alert('Please fill in Project Name and Scope.'); return; }
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Processing...';
+  showTab('process');
+
+  const log = document.getElementById('process-log');
+  log.textContent = '[' + ts() + '] Starting AI Planning...\n';
+
+  const msgs = ['Loading AI Framework...','Designing Workflow...','Applying WBS Library...','Loading Templates...','Executing SOP...','Pilot Analysis...','System Architecture...','Functional Spec...'];
+  let si = 0;
+  const timer = setInterval(() => {
+    if (si < 8) {
+      if (si > 0) setStep(si - 1, 'done');
+      setStep(si, 'running');
+      const pct = Math.round((si / 8) * 55);
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('proc-pct').textContent = pct + '%';
+      document.getElementById('proc-label').textContent = msgs[si];
+      log.textContent += '[' + ts() + '] ' + msgs[si] + '\n';
+      si++;
+    } else clearInterval(timer);
+  }, 380);
+
+  try {
+    const model = document.getElementById('model-select').value;
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({model, max_tokens:4000, messages:[{role:'user',content:buildPrompt(d)}]})
+    });
+    clearInterval(timer);
+    if (!resp.ok) { const e = await resp.json(); throw new Error(e.error?.message || 'API error ' + resp.status); }
+    const apiData = await resp.json();
+    for (let i = 0; i < 8; i++) setStep(i, 'done');
+    document.getElementById('progress-bar').style.width = '100%';
+    document.getElementById('proc-pct').textContent = '100%';
+    document.getElementById('proc-label').textContent = 'Complete!';
+    log.textContent += '[' + ts() + '] AI analysis complete! Building outputs...\n';
+
+    const raw = apiData.content.map(x => x.text || '').join('');
+    let r;
+    try { r = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
+    catch { r = {synopsis:raw.substring(0,800),wbs:[],budget:[],execution:'',procurement:'',critical_path:'',risks:[],financial:'',margin_pct:'—',cashflow_peak:'—',resource_peak:'—',procurement_lead:'—'}; }
+
+    results = r;
+    populateOutputs(r, d);
+    btn.disabled = false;
+    btn.innerHTML = '⚡ Run AI Planning';
+    showTab('output');
+  } catch(err) {
+    clearInterval(timer);
+    log.textContent += '\n[ERROR] ' + err.message;
+    btn.disabled = false;
+    btn.innerHTML = '⚡ Run AI Planning';
+    alert('Error: ' + err.message);
+  }
+}
+
+function ts() { return new Date().toLocaleTimeString(); }
+function setStep(i, state) {
+  const el = document.getElementById('step-' + i);
+  el.className = 'step-item ' + state;
+}
+
+// ─── POPULATE
+function populateOutputs(r, d) {
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (val && el) { el.textContent = val; el.classList.remove('placeholder'); el.classList.add('filled'); }
+  };
+  set('synopsis-out', r.synopsis);
+  set('execution-out', r.execution);
+  set('procurement-out', r.procurement);
+  set('critical-out', r.critical_path);
+  set('financial-out', r.financial);
+
+  const cv = parseFloat(d.value) || 0;
+
+  if (r.wbs && r.wbs.length) {
+    let h = '<table class="mini-table"><thead><tr><th>Code</th><th>Activity</th><th>Duration</th><th>Owner</th><th>%</th>' + (cv?'<th>SAR</th>':'') + '</tr></thead><tbody>';
+    r.wbs.forEach(row => {
+      const amt = cv ? Math.round(cv * (row.budget_pct||0) / 100).toLocaleString() : '';
+      h += `<tr><td><span class="tag tag-blue">${row.code}</span></td><td>${row.activity}</td><td>${row.duration}</td><td style="font-size:10px;color:var(--text3)">${row.owner}</td><td>${row.budget_pct||'—'}%</td>${cv?'<td style="font-family:monospace;font-size:10px">'+amt+'</td>':''}</tr>`;
+    });
+    h += '</tbody></table>';
+    document.getElementById('wbs-out').innerHTML = h;
+  }
+
+  if (r.budget && r.budget.length) {
+    let h = '<table class="mini-table"><thead><tr><th>Item</th><th>%</th>' + (cv?'<th>SAR</th>':'') + '<th>Note</th></tr></thead><tbody>';
+    r.budget.forEach(row => {
+      const amt = cv ? Math.round(cv * row.pct / 100).toLocaleString() : '';
+      h += `<tr><td>${row.item}</td><td><strong>${row.pct}%</strong></td>${cv?'<td style="font-family:monospace;font-size:10px">'+amt+'</td>':''}<td style="color:var(--text3);font-size:10px">${row.note}</td></tr>`;
+    });
+    h += '</tbody></table>';
+    document.getElementById('budget-out').innerHTML = h;
+  }
+
+  if (r.risks && r.risks.length) {
+    document.getElementById('risk-out').innerHTML = r.risks.map(x => `<div class="risk-item">⚠️ ${x}</div>`).join('');
+  }
+
+  document.getElementById('ins-ob').textContent = cv ? 'SAR ' + (cv/1000000).toFixed(1) + 'M' : '—';
+  document.getElementById('ins-cf').textContent = r.cashflow_peak || '—';
+  document.getElementById('ins-mg').textContent = r.margin_pct || '—';
+  document.getElementById('ins-rc').textContent = r.resource_peak || '—';
+}
+
+// ─── EXPORT TO EXCEL SHEETS
+async function exportToExcel() {
+  if (!results) { alert('Generate a plan first.'); return; }
+  const d = getData();
+  const r = results;
+  const cv = parseFloat(d.value) || 0;
+
+  try {
+    await Excel.run(async context => {
+      const wb = context.workbook;
+
+      // Helper: get or create sheet
+      async function getSheet(name) {
+        let sheet;
+        try {
+          sheet = wb.worksheets.getItem(name);
+          sheet.load('name');
+          await context.sync();
+          sheet.getUsedRange().clear();
+        } catch {
+          sheet = wb.worksheets.add(name);
+        }
+        return sheet;
+      }
+
+      // ── SHEET 1: Synopsis ──
+      const s1 = await getSheet('Synopsis');
+      s1.getRange('A1').values = [['AI PLANNING SYSTEM — PROJECT PLAN']];
+      s1.getRange('A1').format.font.bold = true;
+      s1.getRange('A1').format.font.size = 16;
+      s1.getRange('A1').format.font.color = '#0d2137';
+      s1.getRange('A2').values = [['Generated: ' + new Date().toLocaleDateString()]];
+      s1.getRange('A2').format.font.color = '#888888';
+
+      const metaData = [
+        ['Project Name', d.name],
+        ['Client', d.client || '—'],
+        ['Contractor', d.contractor || '—'],
+        ['Type', d.type || '—'],
+        ['Contract Value (SAR)', cv ? cv.toLocaleString() : '—'],
+        ['Duration', (d.duration || '—') + ' months'],
+        ['Margin Forecast', r.margin_pct || '—'],
+        ['Cashflow Peak', r.cashflow_peak || '—'],
+        ['Peak Headcount', r.resource_peak || '—'],
+        ['Procurement Lead', r.procurement_lead || '—'],
+      ];
+      s1.getRange('A4').values = [['FIELD', 'VALUE']];
+      s1.getRange('A4:B4').format.font.bold = true;
+      s1.getRange('A4:B4').format.fill.color = '#0d2137';
+      s1.getRange('A4:B4').format.font.color = '#ffffff';
+      s1.getRange('A5').values = metaData;
+      s1.getRange('A5:B14').format.borders.getItem('EdgeBottom').style = 'Continuous';
+
+      s1.getRange('A16').values = [['PROJECT SYNOPSIS']];
+      s1.getRange('A16').format.font.bold = true;
+      s1.getRange('A16').format.font.color = '#0d2137';
+      s1.getRange('A17').values = [[r.synopsis || '']];
+      s1.getRange('A17').format.wrapText = true;
+      s1.getRange('A17').rowHeight = 200;
+      s1.getRange('A:B').format.columnWidth = 200;
+      s1.getRange('A:A').format.columnWidth = 160;
+
+      // ── SHEET 2: WBS ──
+      if (r.wbs && r.wbs.length) {
+        const s2 = await getSheet('WBS');
+        s2.getRange('A1').values = [['WORK BREAKDOWN STRUCTURE (WBS)']];
+        s2.getRange('A1').format.font.bold = true;
+        s2.getRange('A1').format.font.size = 14;
+        s2.getRange('A1').format.font.color = '#0d2137';
+        s2.getRange('A2').values = [[d.name + ' | ' + (d.client || '') + ' | SAR ' + (cv ? cv.toLocaleString() : 'N/A')]];
+        s2.getRange('A2').format.font.color = '#888888';
+
+        const headers = ['Code','Activity','Duration','Owner','Budget %', cv ? 'SAR Estimate' : ''];
+        s2.getRange('A4').values = [headers.filter(Boolean)];
+        s2.getRange('A4:F4').format.font.bold = true;
+        s2.getRange('A4:F4').format.fill.color = '#1f3a5f';
+        s2.getRange('A4:F4').format.font.color = '#cae8ff';
+
+        const wbsRows = r.wbs.map(row => [
+          row.code, row.activity, row.duration, row.owner,
+          (row.budget_pct || 0) / 100,
+          cv ? Math.round(cv * (row.budget_pct || 0) / 100) : ''
+        ].filter((_, i) => i < 5 || cv));
+        s2.getRange('A5').values = wbsRows;
+        s2.getRange(`E5:E${4 + r.wbs.length}`).numberFormat = [['0%']];
+        if (cv) s2.getRange(`F5:F${4 + r.wbs.length}`).numberFormat = [['#,##0']];
+        s2.getRange('A:F').format.columnWidth = 140;
+        s2.getRange('A:A').format.columnWidth = 60;
+        s2.getRange('C:C').format.columnWidth = 90;
+        s2.getRange('E:E').format.columnWidth = 80;
+      }
+
+      // ── SHEET 3: Budget ──
+      if (r.budget && r.budget.length) {
+        const s3 = await getSheet('Budget');
+        s3.getRange('A1').values = [['BUDGET BREAKDOWN']];
+        s3.getRange('A1').format.font.bold = true;
+        s3.getRange('A1').format.font.size = 14;
+        s3.getRange('A1').format.font.color = '#0d2137';
+        s3.getRange('A2').values = [['Total Contract Value: SAR ' + (cv ? cv.toLocaleString() : 'Not specified')]];
+        s3.getRange('A2').format.font.color = '#888888';
+
+        s3.getRange('A4').values = [['Budget Item', '%', cv ? 'SAR Amount' : '', 'Note'].filter(Boolean)];
+        s3.getRange('A4:D4').format.font.bold = true;
+        s3.getRange('A4:D4').format.fill.color = '#3d2f0a';
+        s3.getRange('A4:D4').format.font.color = '#f8e3a3';
+
+        const budRows = r.budget.map(row => [
+          row.item, row.pct / 100,
+          cv ? Math.round(cv * row.pct / 100) : '',
+          row.note
+        ].filter((_, i) => i < 2 || cv || i === 3));
+        s3.getRange('A5').values = budRows;
+        s3.getRange(`B5:B${4 + r.budget.length}`).numberFormat = [['0%']];
+        if (cv) s3.getRange(`C5:C${4 + r.budget.length}`).numberFormat = [['#,##0']];
+
+        // Total row
+        const totalRow = 5 + r.budget.length;
+        s3.getRange(`A${totalRow}`).values = [['TOTAL']];
+        s3.getRange(`A${totalRow}`).format.font.bold = true;
+        s3.getRange(`B${totalRow}`).values = [[1]];
+        s3.getRange(`B${totalRow}`).numberFormat = [['0%']];
+        s3.getRange(`B${totalRow}`).format.font.bold = true;
+        if (cv) {
+          s3.getRange(`C${totalRow}`).values = [[cv]];
+          s3.getRange(`C${totalRow}`).numberFormat = [['#,##0']];
+          s3.getRange(`C${totalRow}`).format.font.bold = true;
+        }
+        s3.getRange('A:D').format.columnWidth = 160;
+        s3.getRange('B:B').format.columnWidth = 70;
+        if (cv) s3.getRange('C:C').format.columnWidth = 120;
+      }
+
+      // ── SHEET 4: Execution Plan ──
+      const s4 = await getSheet('Execution Plan');
+      const planSections = [
+        ['EXECUTION PLAN', r.execution || ''],
+        ['', ''],
+        ['PROCUREMENT PLAN', r.procurement || ''],
+        ['', ''],
+        ['CRITICAL PATH & MILESTONES', r.critical_path || ''],
+        ['', ''],
+        ['FINANCIAL TRACKING', r.financial || ''],
+      ];
+      let row = 1;
+      for (const [title, body] of planSections) {
+        if (title) {
+          s4.getRange(`A${row}`).values = [[title]];
+          s4.getRange(`A${row}`).format.font.bold = true;
+          s4.getRange(`A${row}`).format.font.size = 12;
+          s4.getRange(`A${row}`).format.font.color = '#0d2137';
+          row++;
+          s4.getRange(`A${row}`).values = [[body]];
+          s4.getRange(`A${row}`).format.wrapText = true;
+          s4.getRange(`A${row}`).rowHeight = 180;
+          row += 2;
+        }
+      }
+      s4.getRange('A:A').format.columnWidth = 600;
+
+      // ── SHEET 5: Risk Register ──
+      if (r.risks && r.risks.length) {
+        const s5 = await getSheet('Risk Register');
+        s5.getRange('A1').values = [['RISK REGISTER']];
+        s5.getRange('A1').format.font.bold = true;
+        s5.getRange('A1').format.font.size = 14;
+        s5.getRange('A1').format.font.color = '#0d2137';
+        s5.getRange('A3').values = [['#', 'Risk Description', 'Category', 'Status']];
+        s5.getRange('A3:D3').format.font.bold = true;
+        s5.getRange('A3:D3').format.fill.color = '#3d1616';
+        s5.getRange('A3:D3').format.font.color = '#ffc1ba';
+        const riskRows = r.risks.map((risk, i) => {
+          const parts = risk.split(':');
+          return [i + 1, risk, parts[0] || 'General', 'Open'];
+        });
+        s5.getRange('A4').values = riskRows;
+        s5.getRange('A:D').format.columnWidth = 200;
+        s5.getRange('A:A').format.columnWidth = 40;
+        s5.getRange('C:C').format.columnWidth = 120;
+        s5.getRange('D:D').format.columnWidth = 80;
+      }
+
+      // Activate WBS sheet
+      (await getSheet('WBS')).activate();
+      await context.sync();
+    });
+
+    alert('✅ Plan exported to Excel!\n\nSheets created:\n• Synopsis\n• WBS\n• Budget\n• Execution Plan\n• Risk Register');
+  } catch(err) {
+    alert('Export error: ' + err.message);
+    console.error(err);
+  }
+}
+
+// ─── FOLLOW-UP
+async function askFollowup() {
+  if (!results) { alert('Generate a plan first.'); return; }
+  const q = document.getElementById('fup-input').value.trim();
+  if (!q) return;
+  const out = document.getElementById('fup-out');
+  out.textContent = 'Thinking...';
+  out.classList.remove('placeholder');
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Project plan: ${JSON.stringify(results)}\n\nQuestion: ${q}\n\nAnswer professionally in 2-3 paragraphs.`}]})
+    });
+    const data = await resp.json();
+    out.textContent = data.content.map(x => x.text || '').join('');
+    out.classList.add('filled');
+  } catch(e) { out.textContent = 'Error: ' + e.message; }
+}
+
+function quickQ(q) { document.getElementById('fup-input').value = q; askFollowup(); }
+
+function clearAll() {
+  if (!confirm('Clear all data?')) return;
+  ['proj-name','contract-value','proj-duration','client-name','contractor','scope-text','milestones-text','contract-text'].forEach(id => document.getElementById(id).value = '');
+  for (let i = 1; i <= 6; i++) document.getElementById('chk' + i).checked = false;
+  results = null;
+  showTab('input');
+}
+</script>
+</body>
+</html>
